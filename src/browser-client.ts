@@ -7,8 +7,11 @@ export class BrowserClient {
   private apiEndpoint: string;
 
   constructor() {
-    // Use the deployed Cloudflare Worker
-    this.apiEndpoint = process.env.BROWSER_RENDERING_API || 'https://browser-rendering-api.as186v.workers.dev';
+    // Use the Cloudflare Worker endpoint from environment variable
+    if (!process.env.BROWSER_RENDERING_API) {
+      console.warn('BROWSER_RENDERING_API environment variable is not set. Please set it to your Cloudflare Worker URL.');
+    }
+    this.apiEndpoint = process.env.BROWSER_RENDERING_API || 'https://your-browser-rendering-api.workers.dev';
     console.log(`Initialized BrowserClient with endpoint: ${this.apiEndpoint}`);
   }
 

@@ -19,7 +19,7 @@ This MCP server provides tools for interacting with Cloudflare Browser Rendering
 
 ## Installation
 
-The server has been installed and configured for use with Cline. To complete the setup:
+The server should be installed and configured for use with Cline. To complete the setup:
 
 1. Edit the Cline MCP settings file at:
    ```
@@ -34,12 +34,66 @@ The server has been installed and configured for use with Cline. To complete the
        "<path-to-repository>/dist/index.js"
      ],
      "env": {
-       "BROWSER_RENDERING_API": "https://browser-rendering-api.as186v.workers.dev"
+       "BROWSER_RENDERING_API": "https://your-browser-rendering-api.workers.dev"
      },
      "disabled": false,
      "autoApprove": []
    }
    ```
+
+## Setting Up Your Cloudflare Worker
+
+This MCP server requires a Cloudflare Worker with Browser Rendering capabilities to function. Follow these steps to set up your own worker:
+
+### Prerequisites
+
+1. A Cloudflare account (sign up at [cloudflare.com](https://cloudflare.com))
+2. The [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) installed and authenticated
+3. Access to the Browser Rendering API (may require a paid Workers plan)
+
+### Worker Setup
+
+1. **Create a new Worker in Cloudflare**:
+   - Go to the Cloudflare dashboard
+   - Navigate to Workers & Pages
+   - Click "Create application" and select "Create Worker"
+   - Give your worker a name (e.g., "browser-rendering-api")
+
+2. **Configure Wrangler**:
+   - This repository includes a `wrangler.toml` file and `puppeteer-worker.js` that are ready to use
+   - Update the `name` in `wrangler.toml` if you chose a different worker name
+   - Optionally, update the `ALLOWED_ORIGINS` in `puppeteer-worker.js` to include your domains
+
+3. **Enable Browser Rendering**:
+   - In the Cloudflare dashboard, go to your worker
+   - Click on "Settings" > "Bindings"
+   - Add a new Browser binding named "browser"
+
+4. **Deploy the Worker**:
+   - Run the following command from the repository root:
+     ```
+     npx wrangler deploy
+     ```
+   - Note the URL of your deployed worker (e.g., `https://browser-rendering-api.yourusername.workers.dev`)
+
+5. **Update MCP Configuration**:
+   - Use your worker's URL as the `BROWSER_RENDERING_API` value in the MCP settings
+
+### Testing Your Worker
+
+To verify your worker is functioning correctly:
+
+```bash
+# Test the content endpoint
+curl -X POST https://your-worker-url.workers.dev/content \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}'
+
+# Test the screenshot endpoint
+curl -X POST https://your-worker-url.workers.dev/screenshot \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}'
+```
 
 ## Usage
 
@@ -103,9 +157,22 @@ You can customize the MCP server by setting these environment variables:
 
 If you encounter issues:
 
-1. Check that the Cloudflare Browser Rendering API endpoint is correctly configured
-2. Verify that the API endpoint is accessible from your network
-3. Check the Cline logs for any error messages
+1. **MCP Server Issues**:
+   - Check that the Cloudflare Browser Rendering API endpoint is correctly configured
+   - Verify that the API endpoint is accessible from your network
+   - Check the Cline logs for any error messages
+
+2. **Cloudflare Worker Issues**:
+   - Ensure your Cloudflare account has access to the Browser Rendering API
+   - Verify the Browser binding is correctly set up in your worker
+   - Check the Cloudflare Workers logs in the dashboard for any errors
+   - Make sure your worker's ALLOWED_ORIGINS includes your domain or localhost
+   - If you're getting timeout errors, try increasing the timeout value in the worker
+
+3. **Content Extraction Issues**:
+   - Some websites may block headless browsers or have anti-scraping measures
+   - Try adjusting the waitUntil parameter (e.g., 'networkidle0', 'domcontentloaded')
+   - For complex sites, you may need to implement additional waiting logic
 
 ## Development
 
