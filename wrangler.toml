@@ -5,3 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [browser]
 binding = "browser"
+
+[[kv_namespaces]]
+binding = "SCREENSHOTS"
+id = "1c2c4dce1e394684b0ecbff7424b4975"

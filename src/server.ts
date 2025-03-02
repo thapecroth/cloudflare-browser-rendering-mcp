@@ -8,6 +8,9 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { BrowserClient } from './browser-client.js';
 import { ContentProcessor } from './content-processor.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Cloudflare Browser Rendering MCP Server
@@ -19,8 +22,16 @@ export class BrowserRenderingServer {
   private server: Server;
   private browserClient: BrowserClient;
   private contentProcessor: ContentProcessor;
+  private screenshotsDir: string;
 
   constructor() {
+    // Set up screenshots directory
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    this.screenshotsDir = path.join(__dirname, '..', 'screenshots');
+    if (!fs.existsSync(this.screenshotsDir)) {
+      fs.mkdirSync(this.screenshotsDir, { recursive: true });
+    }
+    
     this.server = new Server(
       {
         name: 'cloudflare-browser-rendering',
@@ -130,6 +141,32 @@ export class BrowserRenderingServer {
             required: ['url'],
           },
         },
+        {
+          name: 'take_screenshot',
+          description: 'Takes a screenshot of a web page and returns it as an image',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              url: {
+                type: 'string',
+                description: 'URL to take a screenshot of',
+              },
+              width: {
+                type: 'number',
+                description: 'Width of the viewport in pixels (default: 1280)',
+              },
+              height: {
+                type: 'number',
+                description: 'Height of the viewport in pixels (default: 800)',
+              },
+              fullPage: {
+                type: 'boolean',
+                description: 'Whether to take a screenshot of the full page or just the viewport (default: false)',
+              },
+            },
+            required: ['url'],
+          },
+        },
       ],
     }));
 
@@ -147,6 +184,8 @@ export class BrowserRenderingServer {
             return await this.handleExtractStructuredContent(args);
           case 'summarize_content':
             return await this.handleSummarizeContent(args);
+          case 'take_screenshot':
+            return await this.handleTakeScreenshot(args);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -390,6 +429,58 @@ The service runs within Cloudflare's network, providing low-latency access to br
             type: 'text',
             text: `Error summarizing content: ${error instanceof Error ? error.message : String(error)}`,
           },
+        ],
+        isError: true,
+      };
+    }
+  }
+
+  /**
+   * Handle the take_screenshot tool
+   */
+  private async handleTakeScreenshot(args: any) {
+    // Validate arguments
+    if (typeof args !== 'object' || args === null || typeof args.url !== 'string') {
+      throw new McpError(ErrorCode.InvalidParams, 'Invalid arguments for take_screenshot');
+    }
+
+    const { 
+      url, 
+      width = 1280, 
+      height = 800, 
+      fullPage = false
+    } = args;
+
+    try {
+      console.log(`Taking screenshot of ${url} with the following parameters:`, { width, height, fullPage });
+      console.log(`Using API endpoint: ${process.env.BROWSER_RENDERING_API}`);
+      
+      // Take the screenshot - returns only the URL
+      const screenshotUrl = await this.browserClient.takeScreenshot(url, {
+        width,
+        height,
+        fullPage,
+      });
+      
+      console.log('Screenshot taken, URL:', screenshotUrl);
+      
+      // Return just the URL as text (without embedding the image)
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Screenshot of ${url} is available at: ${screenshotUrl}\n\n(URL provided as text to prevent potential rendering issues)`
+          }
+        ]
+      };
+    } catch (error) {
+      console.error('Error taking screenshot:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error taking screenshot: ${error instanceof Error ? error.message : String(error)}`,
+          }
         ],
         isError: true,
       };

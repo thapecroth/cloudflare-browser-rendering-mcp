@@ -16,6 +16,7 @@ This MCP server provides tools for interacting with Cloudflare Browser Rendering
 - **Search Documentation**: Find relevant information in Cloudflare documentation
 - **Extract Structured Content**: Pull specific content from web pages using CSS selectors
 - **Summarize Content**: Get concise summaries of web pages for more efficient context
+- **Take Screenshots**: Capture screenshots of web pages and display them inline in Cline
 
 ## Installation
 
@@ -64,19 +65,38 @@ This MCP server requires a Cloudflare Worker with Browser Rendering capabilities
    - Update the `name` in `wrangler.toml` if you chose a different worker name
    - Optionally, update the `ALLOWED_ORIGINS` in `puppeteer-worker.js` to include your domains
 
-3. **Enable Browser Rendering**:
+3. **Create KV Namespace for Screenshot Storage**:
+   - Screenshots are stored in Cloudflare KV to ensure persistence between requests
+   - Create a KV namespace with:
+     ```
+     npx wrangler kv:namespace create SCREENSHOTS
+     ```
+   - Add the namespace ID to your `wrangler.toml` file:
+     ```toml
+     [[kv_namespaces]]
+     binding = "SCREENSHOTS"
+     id = "<your-namespace-id>"
+     ```
+
+4. **Enable Browser Rendering**:
    - In the Cloudflare dashboard, go to your worker
    - Click on "Settings" > "Bindings"
    - Add a new Browser binding named "browser"
 
-4. **Deploy the Worker**:
+5. **Cloudflare API Token Permissions**:
+   - Your Cloudflare API token needs the following permissions:
+     - Account > Workers KV Storage > Edit
+     - Zone > Workers Routes > Edit
+     - Account > Worker Scripts > Edit
+
+6. **Deploy the Worker**:
    - Run the following command from the repository root:
      ```
      npx wrangler deploy
      ```
    - Note the URL of your deployed worker (e.g., `https://browser-rendering-api.yourusername.workers.dev`)
 
-5. **Update MCP Configuration**:
+7. **Update MCP Configuration**:
    - Use your worker's URL as the `BROWSER_RENDERING_API` value in the MCP settings
 
 ### Testing Your Worker
@@ -147,6 +167,20 @@ Parameters:
 - `url` (required): URL to summarize
 - `maxLength` (optional): Maximum length of the summary (default: 500)
 
+### Take Screenshot
+
+Takes a screenshot of a web page and displays it inline in Cline:
+
+```
+Use the take_screenshot tool to capture "https://example.com"
+```
+
+Parameters:
+- `url` (required): URL to take a screenshot of
+- `width` (optional): Width of the viewport in pixels (default: 1280)
+- `height` (optional): Height of the viewport in pixels (default: 800)
+- `fullPage` (optional): Whether to capture the full page or just the viewport (default: false)
+
 ## Configuration Options
 
 You can customize the MCP server by setting these environment variables:
@@ -168,6 +202,13 @@ If you encounter issues:
    - Check the Cloudflare Workers logs in the dashboard for any errors
    - Make sure your worker's ALLOWED_ORIGINS includes your domain or localhost
    - If you're getting timeout errors, try increasing the timeout value in the worker
+
+3. **Screenshot Issues**:
+   - If screenshots aren't persisting between requests, ensure the KV namespace is correctly set up in `wrangler.toml`
+   - Verify your Cloudflare API token has "Workers KV Storage" permissions
+   - Check that the worker is correctly storing and retrieving images from KV storage
+   - If image URLs return 404 errors, the KV data may have expired (default expiration is 1 hour)
+   - For large images or slow sites, try increasing the timeout values in `puppeteer-worker.js`
 
 3. **Content Extraction Issues**:
    - Some websites may block headless browsers or have anti-scraping measures
@@ -194,6 +235,7 @@ The Cloudflare Browser Rendering MCP server leverages Cloudflare's serverless he
 2. Process and clean HTML content for LLM consumption
 3. Extract structured data from web pages
 4. Generate summaries of web content
+5. Capture screenshots of web pages
 
 This allows Cline to access and understand web content that would otherwise be difficult to process, providing richer context for your interactions.
 
@@ -212,7 +254,7 @@ The server consists of several key components:
 The server communicates with the following Cloudflare Browser Rendering API endpoints:
 
 - `/content`: Fetches rendered HTML content from a URL
-- `/screenshot`: Takes a screenshot of a URL (currently disabled)
+- `/screenshot`: Takes a screenshot of a URL
 - `/scrape`: Extracts specific content using CSS selectors
 
 ## License
