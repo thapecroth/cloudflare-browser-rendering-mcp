@@ -1,0 +1,25 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - browserRenderingApi
+    properties:
+      browserRenderingApi:
+        type: string
+        description: The URL to the deployed Cloudflare Worker handling browser
+          rendering requests.
+      port:
+        type: number
+        default: 3000
+        description: Port for the MCP server (if applicable).
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({ command: 'node', args: ['dist/index.js'], env: { BROWSER_RENDERING_API: config.browserRenderingApi, PORT: String(config.port) } })
+  exampleConfig:
+    browserRenderingApi: https://browser-rendering-api.example.workers.dev
+    port: 3000
