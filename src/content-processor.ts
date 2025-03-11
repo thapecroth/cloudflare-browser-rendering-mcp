@@ -133,7 +133,7 @@ Description: ${metadata.description}
    */
   summarizeContent(content: string, maxLength: number = 500): string {
     // In a real implementation, you would call an LLM API here
-    console.log('Simulating content summarization...');
+    console.error('[API] Simulating content summarization...');
     
     // For this simulation, we'll return a mock summary
     const mockSummary = `

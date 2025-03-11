@@ -9,10 +9,10 @@ export class BrowserClient {
   constructor() {
     // Use the Cloudflare Worker endpoint from environment variable
     if (!process.env.BROWSER_RENDERING_API) {
-      console.warn('BROWSER_RENDERING_API environment variable is not set. Please set it to your Cloudflare Worker URL.');
+      console.error('[Setup] BROWSER_RENDERING_API environment variable is not set. Please set it to your Cloudflare Worker URL.');
     }
     this.apiEndpoint = process.env.BROWSER_RENDERING_API || 'https://your-browser-rendering-api.workers.dev';
-    console.log(`Initialized BrowserClient with endpoint: ${this.apiEndpoint}`);
+    console.error(`[Setup] Initialized BrowserClient with endpoint: ${this.apiEndpoint}`);
   }
 
   /**
@@ -22,7 +22,7 @@ export class BrowserClient {
    */
   async fetchContent(url: string): Promise<string> {
     try {
-      console.log(`Fetching content from: ${url}`);
+      console.error(`[API] Fetching content from: ${url}`);
       
       // Make the API call to the Cloudflare Worker
       const response = await axios.post(`${this.apiEndpoint}/content`, {
@@ -37,15 +37,15 @@ export class BrowserClient {
       }
       
       // If we can't find the content, log the response and throw an error
-      console.error('Unexpected response structure:', JSON.stringify(response.data, null, 2));
+      console.error('[Error] Unexpected response structure:', JSON.stringify(response.data, null, 2));
       throw new Error('Unexpected response structure from Cloudflare Worker');
     } catch (error: any) {
-      console.error('Error fetching content:', error);
+      console.error('[Error] Error fetching content:', error);
       
       // Log more detailed error information if available
       if (error.response) {
-        console.error('Response status:', error.response.status);
-        console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+        console.error('[Error] Response status:', error.response.status);
+        console.error('[Error] Response data:', JSON.stringify(error.response.data, null, 2));
       }
       
       throw new Error(`Failed to fetch content: ${error instanceof Error ? error.message : String(error)}`);
@@ -66,7 +66,7 @@ export class BrowserClient {
     timeout?: number;
   } = {}): Promise<string> {
     try {
-      console.log(`Taking screenshot of: ${url}`);
+      console.error(`[API] Taking screenshot of: ${url}`);
       
       // Validate URL before sending
       try {
@@ -102,14 +102,14 @@ export class BrowserClient {
       }
       
       // If we can't find the URL, log the response and throw an error
-      console.error('Unexpected response structure:', JSON.stringify(response.data, null, 2));
+      console.error('[Error] Unexpected response structure:', JSON.stringify(response.data, null, 2));
       throw new Error('Screenshot URL not found in Cloudflare Worker response');
     } catch (error: any) {
-      console.error('Error taking screenshot:', error);
+      console.error('[Error] Error taking screenshot:', error);
       
       // If API is unavailable, throw an error
       if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || !process.env.BROWSER_RENDERING_API) {
-        console.error('Cloudflare worker API is unavailable or not configured');
+        console.error('[Error] Cloudflare worker API is unavailable or not configured');
         throw new Error('Cloudflare worker API is unavailable or not configured. Please check your BROWSER_RENDERING_API environment variable.');
       }
       
@@ -120,8 +120,8 @@ export class BrowserClient {
       
       // Log more detailed error information if available
       if (error.response) {
-        console.error('Response status:', error.response.status);
-        console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+        console.error('[Error] Response status:', error.response.status);
+        console.error('[Error] Response data:', JSON.stringify(error.response.data, null, 2));
       }
       
       throw new Error(`Failed to take screenshot: ${error instanceof Error ? error.message : String(error)}`);

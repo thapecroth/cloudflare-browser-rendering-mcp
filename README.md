@@ -1,262 +1,255 @@
-<h1 align="center">Cloudflare Browser Rendering MCP Server</h1>
+# Cloudflare Browser Rendering MCP Server
 
-<p align="center">
-  Cline MCP integration for Cloudflare Browser Rendering - fetch, process, and analyze web content for LLMs
-</p>
-
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-</p>
-
-This MCP server provides tools for interacting with Cloudflare Browser Rendering, allowing you to fetch and process web content for use as context in LLMs directly from Cline.
+This MCP (Model Context Protocol) server provides tools for fetching and processing web content using Cloudflare Browser Rendering for use as context in LLMs. It's designed to work with both Claude and Cline client environments.
 
 ## Features
 
-- **Fetch Web Pages**: Retrieve and process content from any URL, handling JavaScript rendering
-- **Search Documentation**: Find relevant information in Cloudflare documentation
-- **Extract Structured Content**: Pull specific content from web pages using CSS selectors
-- **Summarize Content**: Get concise summaries of web pages for more efficient context
-- **Take Screenshots**: Capture screenshots of web pages and display them inline in Cline
+- **Web Content Fetching**: Fetch and process web pages for LLM context
+- **Documentation Search**: Search Cloudflare documentation and return relevant content
+- **Structured Content Extraction**: Extract structured content from web pages using CSS selectors
+- **Content Summarization**: Summarize web content for more concise LLM context
+- **Screenshot Capture**: Take screenshots of web pages
+
+## Prerequisites
+
+- Node.js v18 or higher
+- A Cloudflare account with Browser Rendering API access
+- A deployed Cloudflare Worker using the provided `puppeteer-worker.js` file
 
 ## Installation
 
-The server should be installed and configured for use with Cline. To complete the setup:
-
-1. Edit the Cline MCP settings file at:
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/cloudflare-browser-rendering.git
+   cd cloudflare-browser-rendering
    ```
-   ~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+
+2. Install dependencies:
+   ```bash
+   npm install
    ```
 
-2. Add the Cloudflare Browser Rendering API endpoint:
+3. Build the project:
+   ```bash
+   npm run build
+   ```
+
+## Cloudflare Worker Setup
+
+1. Deploy the `puppeteer-worker.js` file to Cloudflare Workers using Wrangler:
+   ```bash
+   npx wrangler deploy
+   ```
+
+2. Make sure to configure the following bindings in your Cloudflare Worker:
+   - Browser Rendering binding named `browser`
+   - KV namespace binding named `SCREENSHOTS`
+
+3. Note the URL of your deployed worker (e.g., `https://browser-rendering-api.yourusername.workers.dev`)
+
+## Configuration
+
+### For Claude Desktop
+
+1. Open the Claude Desktop configuration file:
+   ```bash
+   # macOS
+   code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+   
+   # Windows
+   code %APPDATA%\Claude\claude_desktop_config.json
+   ```
+
+2. Add the MCP server configuration:
    ```json
-   "cloudflare-browser-rendering": {
-     "command": "node",
-     "args": [
-       "<path-to-repository>/dist/index.js"
-     ],
-     "env": {
-       "BROWSER_RENDERING_API": "https://your-browser-rendering-api.workers.dev"
-     },
-     "disabled": false,
-     "autoApprove": []
+   {
+     "mcpServers": {
+       "cloudflare-browser-rendering": {
+         "command": "node",
+         "args": ["/path/to/cloudflare-browser-rendering/dist/index.js"],
+         "env": {
+           "BROWSER_RENDERING_API": "https://your-worker-url.workers.dev"
+         },
+         "disabled": false,
+         "autoApprove": []
+       }
+     }
    }
    ```
 
-## Setting Up Your Cloudflare Worker
+3. Restart Claude Desktop
 
-This MCP server requires a Cloudflare Worker with Browser Rendering capabilities to function. Follow these steps to set up your own worker:
+### For Cline
 
-### Prerequisites
+1. Open the Cline MCP settings file:
+   ```bash
+   # macOS
+   code ~/Library/Application\ Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+   
+   # Windows
+   code %APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json
+   ```
 
-1. A Cloudflare account (sign up at [cloudflare.com](https://cloudflare.com))
-2. The [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) installed and authenticated
-3. Access to the Browser Rendering API (may require a paid Workers plan)
-
-### Worker Setup
-
-1. **Create a new Worker in Cloudflare**:
-   - Go to the Cloudflare dashboard
-   - Navigate to Workers & Pages
-   - Click "Create application" and select "Create Worker"
-   - Give your worker a name (e.g., "browser-rendering-api")
-
-2. **Configure Wrangler**:
-   - This repository includes a `wrangler.toml` file and `puppeteer-worker.js` that are ready to use
-   - Update the `name` in `wrangler.toml` if you chose a different worker name
-   - Optionally, update the `ALLOWED_ORIGINS` in `puppeteer-worker.js` to include your domains
-
-3. **Create KV Namespace for Screenshot Storage**:
-   - Screenshots are stored in Cloudflare KV to ensure persistence between requests
-   - Create a KV namespace with:
-     ```
-     npx wrangler kv:namespace create SCREENSHOTS
-     ```
-   - Add the namespace ID to your `wrangler.toml` file:
-     ```toml
-     [[kv_namespaces]]
-     binding = "SCREENSHOTS"
-     id = "<your-namespace-id>"
-     ```
-
-4. **Enable Browser Rendering**:
-   - In the Cloudflare dashboard, go to your worker
-   - Click on "Settings" > "Bindings"
-   - Add a new Browser binding named "browser"
-
-5. **Cloudflare API Token Permissions**:
-   - Your Cloudflare API token needs the following permissions:
-     - Account > Workers KV Storage > Edit
-     - Zone > Workers Routes > Edit
-     - Account > Worker Scripts > Edit
-
-6. **Deploy the Worker**:
-   - Run the following command from the repository root:
-     ```
-     npx wrangler deploy
-     ```
-   - Note the URL of your deployed worker (e.g., `https://browser-rendering-api.yourusername.workers.dev`)
-
-7. **Update MCP Configuration**:
-   - Use your worker's URL as the `BROWSER_RENDERING_API` value in the MCP settings
-
-### Testing Your Worker
-
-To verify your worker is functioning correctly:
-
-```bash
-# Test the content endpoint
-curl -X POST https://your-worker-url.workers.dev/content \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com"}'
-
-# Test the screenshot endpoint
-curl -X POST https://your-worker-url.workers.dev/screenshot \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com"}'
-```
+2. Add the MCP server configuration:
+   ```json
+   {
+     "mcpServers": {
+       "cloudflare-browser-rendering": {
+         "command": "node",
+         "args": ["/path/to/cloudflare-browser-rendering/dist/index.js"],
+         "env": {
+           "BROWSER_RENDERING_API": "https://your-worker-url.workers.dev"
+         },
+         "disabled": false,
+         "autoApprove": []
+       }
+     }
+   }
+   ```
 
 ## Usage
 
-Once configured, you can use the following tools in Cline:
+Once configured, the MCP server will be available to both Claude Desktop and Cline. You can use the following tools:
 
-### Fetch Page
+### fetch_page
 
-Fetches and processes a web page for LLM context:
+Fetches and processes a web page for LLM context.
 
-```
-Use the fetch_page tool to get content from "https://example.com"
-```
-
-Parameters:
+**Parameters:**
 - `url` (required): URL to fetch
-- `maxContentLength` (optional): Maximum content length to return (default: 10000)
+- `maxContentLength` (optional): Maximum content length to return
 
-### Search Documentation
-
-Searches Cloudflare documentation and returns relevant content:
-
+**Example:**
 ```
-Use the search_documentation tool to find information about "browser rendering api"
+Can you fetch and summarize the content from https://developers.cloudflare.com/browser-rendering/?
 ```
 
-Parameters:
+### search_documentation
+
+Searches Cloudflare documentation and returns relevant content.
+
+**Parameters:**
 - `query` (required): Search query
-- `maxResults` (optional): Maximum number of results to return (default: 3)
+- `maxResults` (optional): Maximum number of results to return
 
-### Extract Structured Content
-
-Extracts structured content from a web page using CSS selectors:
-
+**Example:**
 ```
-Use the extract_structured_content tool to get content from "https://example.com" with selectors {"title": "h1", "paragraph": "p"}
+Search the Cloudflare documentation for information about "browser rendering API".
 ```
 
-Parameters:
+### extract_structured_content
+
+Extracts structured content from a web page using CSS selectors.
+
+**Parameters:**
 - `url` (required): URL to extract content from
 - `selectors` (required): CSS selectors to extract content
 
-### Summarize Content
-
-Summarizes web content for more concise LLM context:
-
+**Example:**
 ```
-Use the summarize_content tool to summarize "https://example.com"
+Extract the main heading and first paragraph from https://developers.cloudflare.com/browser-rendering/ using the selectors h1 and p.
 ```
 
-Parameters:
+### summarize_content
+
+Summarizes web content for more concise LLM context.
+
+**Parameters:**
 - `url` (required): URL to summarize
-- `maxLength` (optional): Maximum length of the summary (default: 500)
+- `maxLength` (optional): Maximum length of the summary
 
-### Take Screenshot
-
-Takes a screenshot of a web page and displays it inline in Cline:
-
+**Example:**
 ```
-Use the take_screenshot tool to capture "https://example.com"
+Summarize the content from https://developers.cloudflare.com/browser-rendering/ in 300 words or less.
 ```
 
-Parameters:
+### take_screenshot
+
+Takes a screenshot of a web page.
+
+**Parameters:**
 - `url` (required): URL to take a screenshot of
 - `width` (optional): Width of the viewport in pixels (default: 1280)
 - `height` (optional): Height of the viewport in pixels (default: 800)
-- `fullPage` (optional): Whether to capture the full page or just the viewport (default: false)
+- `fullPage` (optional): Whether to take a screenshot of the full page or just the viewport (default: false)
 
-## Configuration Options
-
-You can customize the MCP server by setting these environment variables:
-
-- `BROWSER_RENDERING_API`: The URL of the Cloudflare Browser Rendering API endpoint
+**Example:**
+```
+Take a screenshot of https://developers.cloudflare.com/browser-rendering/ with a width of 1024 pixels.
+```
 
 ## Troubleshooting
 
-If you encounter issues:
+### Logging
 
-1. **MCP Server Issues**:
-   - Check that the Cloudflare Browser Rendering API endpoint is correctly configured
-   - Verify that the API endpoint is accessible from your network
-   - Check the Cline logs for any error messages
+The MCP server uses comprehensive logging with the following prefixes:
 
-2. **Cloudflare Worker Issues**:
-   - Ensure your Cloudflare account has access to the Browser Rendering API
-   - Verify the Browser binding is correctly set up in your worker
-   - Check the Cloudflare Workers logs in the dashboard for any errors
-   - Make sure your worker's ALLOWED_ORIGINS includes your domain or localhost
-   - If you're getting timeout errors, try increasing the timeout value in the worker
+- `[Setup]`: Initialization and configuration
+- `[API]`: API requests and responses
+- `[Error]`: Error handling and debugging
 
-3. **Screenshot Issues**:
-   - If screenshots aren't persisting between requests, ensure the KV namespace is correctly set up in `wrangler.toml`
-   - Verify your Cloudflare API token has "Workers KV Storage" permissions
-   - Check that the worker is correctly storing and retrieving images from KV storage
-   - If image URLs return 404 errors, the KV data may have expired (default expiration is 1 hour)
-   - For large images or slow sites, try increasing the timeout values in `puppeteer-worker.js`
+To view logs:
 
-3. **Content Extraction Issues**:
-   - Some websites may block headless browsers or have anti-scraping measures
-   - Try adjusting the waitUntil parameter (e.g., 'networkidle0', 'domcontentloaded')
-   - For complex sites, you may need to implement additional waiting logic
+- **Claude Desktop**: Check the logs in `~/Library/Logs/Claude/mcp*.log` (macOS) or `%APPDATA%\Claude\Logs\mcp*.log` (Windows)
+- **Cline**: Logs appear in the output console of the VSCode extension
+
+### Common Issues
+
+1. **"BROWSER_RENDERING_API environment variable is not set"**
+   - Make sure you've set the correct URL to your Cloudflare Worker in the MCP server configuration
+
+2. **"Cloudflare worker API is unavailable or not configured"**
+   - Verify that your Cloudflare Worker is deployed and running
+   - Check that the URL is correct and accessible
+
+3. **"Browser binding is not available"**
+   - Ensure that you've configured the Browser Rendering binding in your Cloudflare Worker
+
+4. **"SCREENSHOTS KV binding is not available"**
+   - Ensure that you've configured the KV namespace binding in your Cloudflare Worker
 
 ## Development
 
-To make changes to the server:
+### Project Structure
 
-1. Edit the source code in `<path-to-repository>/src/`
-2. Rebuild the server:
-   ```
-   cd <path-to-repository>
-   npm run build
-   ```
-3. Restart Cline to apply the changes
+- `src/index.ts`: Main entry point
+- `src/server.ts`: MCP server implementation
+- `src/browser-client.ts`: Client for interacting with Cloudflare Browser Rendering
+- `src/content-processor.ts`: Processes web content for LLM context
+- `puppeteer-worker.js`: Cloudflare Worker implementation
 
-## How It Works
+### Building
 
-The Cloudflare Browser Rendering MCP server leverages Cloudflare's serverless headless browser service to:
+```bash
+npm run build
+```
 
-1. Render JavaScript-heavy websites
-2. Process and clean HTML content for LLM consumption
-3. Extract structured data from web pages
-4. Generate summaries of web content
-5. Capture screenshots of web pages
+### Testing
 
-This allows Cline to access and understand web content that would otherwise be difficult to process, providing richer context for your interactions.
+The project includes a comprehensive test script that verifies all MCP tools are working correctly:
 
-## Technical Details
+```bash
+npm test
+```
 
-### Architecture
+This will:
+1. Start the MCP server
+2. Test each tool with sample requests
+3. Verify the responses
+4. Provide a summary of test results
 
-The server consists of several key components:
+You can also run individual tests for specific components:
 
-- **BrowserClient**: Handles communication with the Cloudflare Browser Rendering API
-- **ContentProcessor**: Cleans and formats HTML content for LLM consumption
-- **MCP Server**: Exposes the functionality as tools through the Model Context Protocol
+```bash
+# Test the Puppeteer integration
+npm run test:puppeteer
+```
 
-### API Endpoints
-
-The server communicates with the following Cloudflare Browser Rendering API endpoints:
-
-- `/content`: Fetches rendered HTML content from a URL
-- `/screenshot`: Takes a screenshot of a URL
-- `/scrape`: Extracts specific content using CSS selectors
+For the tests to work properly, make sure you have:
+1. Built the project with `npm run build`
+2. Set the `BROWSER_RENDERING_API` environment variable to your Cloudflare Worker URL
+3. Deployed the Cloudflare Worker with the necessary bindings
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT

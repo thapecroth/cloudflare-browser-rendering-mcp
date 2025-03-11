@@ -51,9 +51,10 @@ export class BrowserRenderingServer {
     // Set up request handlers
     this.setupToolHandlers();
     
-    // Error handling
-    this.server.onerror = (error) => console.error('[MCP Error]', error);
+    // Error handling with enhanced logging
+    this.server.onerror = (error) => console.error('[Error] MCP protocol error:', error);
     process.on('SIGINT', async () => {
+      console.error('[Setup] Shutting down server due to SIGINT');
       await this.server.close();
       process.exit(0);
     });
@@ -61,8 +62,10 @@ export class BrowserRenderingServer {
 
   /**
    * Set up tool handlers for the MCP server
+   * Following MCP protocol standards for both Claude and Cline
    */
   private setupToolHandlers() {
+    console.error('[Setup] Registering tool handlers');
     // List available tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
@@ -174,17 +177,23 @@ export class BrowserRenderingServer {
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
+      console.error(`[API] Tool call received: ${name}`);
       try {
         switch (name) {
           case 'fetch_page':
+            console.error(`[API] Fetching page: ${args?.url}`);
             return await this.handleFetchPage(args);
           case 'search_documentation':
+            console.error(`[API] Searching documentation for: ${args?.query}`);
             return await this.handleSearchDocumentation(args);
           case 'extract_structured_content':
+            console.error(`[API] Extracting structured content from: ${args?.url}`);
             return await this.handleExtractStructuredContent(args);
           case 'summarize_content':
+            console.error(`[API] Summarizing content from: ${args?.url}`);
             return await this.handleSummarizeContent(args);
           case 'take_screenshot':
+            console.error(`[API] Taking screenshot of: ${args?.url}`);
             return await this.handleTakeScreenshot(args);
           default:
             throw new McpError(
@@ -194,9 +203,10 @@ export class BrowserRenderingServer {
         }
       } catch (error) {
         if (error instanceof McpError) {
+          console.error(`[Error] MCP error in tool ${name}:`, error);
           throw error;
         }
-        console.error(`Error in tool ${name}:`, error);
+        console.error(`[Error] Error in tool ${name}:`, error);
         throw new McpError(
           ErrorCode.InternalError,
           `Error executing tool ${name}: ${error instanceof Error ? error.message : String(error)}`
@@ -238,7 +248,7 @@ export class BrowserRenderingServer {
         ],
       };
     } catch (error) {
-      console.error('Error fetching page:', error);
+      console.error('[Error] Error fetching page:', error);
       return {
         content: [
           {
@@ -301,7 +311,7 @@ export class BrowserRenderingServer {
         ],
       };
     } catch (error) {
-      console.error('Error searching documentation:', error);
+      console.error('[Error] Error searching documentation:', error);
       return {
         content: [
           {
@@ -359,7 +369,7 @@ export class BrowserRenderingServer {
         ],
       };
     } catch (error) {
-      console.error('Error extracting structured content:', error);
+      console.error('[Error] Error extracting structured content:', error);
       return {
         content: [
           {
@@ -422,7 +432,7 @@ The service runs within Cloudflare's network, providing low-latency access to br
         ],
       };
     } catch (error) {
-      console.error('Error summarizing content:', error);
+      console.error('[Error] Error summarizing content:', error);
       return {
         content: [
           {
@@ -452,8 +462,8 @@ The service runs within Cloudflare's network, providing low-latency access to br
     } = args;
 
     try {
-      console.log(`Taking screenshot of ${url} with the following parameters:`, { width, height, fullPage });
-      console.log(`Using API endpoint: ${process.env.BROWSER_RENDERING_API}`);
+      console.error(`[API] Taking screenshot of ${url} with parameters:`, { width, height, fullPage });
+      console.error(`[API] Using endpoint: ${process.env.BROWSER_RENDERING_API}`);
       
       // Take the screenshot - returns only the URL
       const screenshotUrl = await this.browserClient.takeScreenshot(url, {
@@ -462,7 +472,7 @@ The service runs within Cloudflare's network, providing low-latency access to br
         fullPage,
       });
       
-      console.log('Screenshot taken, URL:', screenshotUrl);
+      console.error('[API] Screenshot taken successfully, URL:', screenshotUrl);
       
       // Return just the URL as text (without embedding the image)
       return {
@@ -474,7 +484,7 @@ The service runs within Cloudflare's network, providing low-latency access to br
         ]
       };
     } catch (error) {
-      console.error('Error taking screenshot:', error);
+      console.error('[Error] Error taking screenshot:', error);
       return {
         content: [
           {

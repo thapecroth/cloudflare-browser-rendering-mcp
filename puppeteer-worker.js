@@ -132,13 +132,13 @@ async function handleImage(request, env) {
     const pathParts = url.pathname.split('/');
     const id = pathParts[pathParts.length - 1];
     
-    console.log(`Requested image with ID: ${id}`);
+    console.log(`[API] Requested image with ID: ${id}`);
     
     // Get the image metadata and data from KV
     const metadata = await env.SCREENSHOTS.get(`${id}:meta`, { type: 'json' });
     
     if (!metadata) {
-      console.error(`Image metadata not found in KV: ${id}`);
+      console.error(`[Error] Image metadata not found in KV: ${id}`);
       return new Response('Image not found', { 
         status: 404,
         headers: { 'Content-Type': 'text/plain' }
@@ -149,7 +149,7 @@ async function handleImage(request, env) {
     const base64Data = await env.SCREENSHOTS.get(`${id}:data`, { type: 'text' });
     
     if (!base64Data) {
-      console.error(`Image data not found in KV: ${id}`);
+      console.error(`[Error] Image data not found in KV: ${id}`);
       return new Response('Image data not found', { 
         status: 404,
         headers: { 'Content-Type': 'text/plain' }
@@ -163,7 +163,7 @@ async function handleImage(request, env) {
       bytes[i] = binaryData.charCodeAt(i);
     }
     
-    console.log(`Serving image ${id} with content type: ${metadata.contentType}`);
+    console.log(`[API] Serving image ${id} with content type: ${metadata.contentType}`);
     
     return new Response(bytes, {
       headers: { 
@@ -172,7 +172,7 @@ async function handleImage(request, env) {
       }
     });
   } catch (error) {
-    console.error('Error serving image:', error);
+    console.error('[Error] Error serving image:', error);
     return new Response(`Error serving image: ${error.message}`, {
       status: 500,
       headers: { 'Content-Type': 'text/plain' }
@@ -187,7 +187,7 @@ async function handleScreenshot(request, env) {
   let browser = null;
   
   try {
-    console.log('Starting screenshot process');
+    console.log('[Setup] Starting screenshot process');
     
     // Parse the request body
     const body = await request.json();
@@ -209,7 +209,7 @@ async function handleScreenshot(request, env) {
       });
     }
     
-    console.log(`Processing screenshot request for URL: ${body.url}`);
+    console.log(`[API] Processing screenshot request for URL: ${body.url}`);
     
     // Check if we have a valid browser binding
     if (!env.browser) {
@@ -237,7 +237,7 @@ async function handleScreenshot(request, env) {
     browser = await puppeteer.launch(env.browser);
     clearTimeout(browserLaunchTimeout);
     
-    console.log('Browser launched successfully');
+    console.log('[Setup] Browser launched successfully');
     
     try {
       // Create a new page
@@ -267,13 +267,13 @@ async function handleScreenshot(request, env) {
       });
       
       // Navigate to the URL with timeout
-      console.log(`Navigating to ${body.url}`);
+      console.log(`[API] Navigating to ${body.url}`);
       await page.goto(body.url, {
         waitUntil: body.waitUntil || 'networkidle2', // Using networkidle2 instead of networkidle0 for better reliability
         timeout,
       });
       
-      console.log('Navigation completed, taking screenshot');
+      console.log('[API] Navigation completed, taking screenshot');
       
       // Cap fullPage option to reduce memory usage
       const fullPage = body.fullPage === true && !body.forceFullPage ? false : body.fullPage || false;
@@ -286,7 +286,7 @@ async function handleScreenshot(request, env) {
         encoding: 'base64',
       });
       
-      console.log('Screenshot taken successfully');
+      console.log('[API] Screenshot taken successfully');
       
       // Generate a unique ID for this screenshot
       const id = generateUniqueId();
@@ -312,13 +312,13 @@ async function handleScreenshot(request, env) {
         env.SCREENSHOTS.put(`${id}:data`, screenshot, { expirationTtl })
       ]);
       
-      console.log(`Screenshot saved to KV with ID: ${id}`);
+      console.log(`[API] Screenshot saved to KV with ID: ${id}`);
       
       // Generate URL (using the request URL to get the origin)
       const origin = new URL(request.url).origin;
       const imageUrl = `${origin}/image/${id}`;
       
-      console.log(`Screenshot processed successfully, assigned ID: ${id}`);
+      console.log(`[API] Screenshot processed successfully, assigned ID: ${id}`);
       
       // Return only the URL (no base64 data) and include metadata
       return new Response(JSON.stringify({ 
@@ -335,20 +335,20 @@ async function handleScreenshot(request, env) {
     } finally {
       // Always close the browser to avoid resource leaks
       if (browser) {
-        console.log('Closing browser');
+        console.log('[Setup] Closing browser');
         await browser.close();
         browser = null;
       }
     }
   } catch (error) {
-    console.error('Error in screenshot process:', error);
+    console.error('[Error] Error in screenshot process:', error);
     
     // Ensure browser is closed even on error
     if (browser) {
       try {
         await browser.close();
       } catch (closeError) {
-        console.error('Error closing browser:', closeError);
+        console.error('[Error] Error closing browser:', closeError);
       }
     }
     

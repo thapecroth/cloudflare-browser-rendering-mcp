@@ -8,14 +8,15 @@ import { BrowserRenderingServer } from './server.js';
  */
 async function main() {
   try {
+    console.error('[Setup] Starting Cloudflare Browser Rendering MCP server...');
     const server = new BrowserRenderingServer();
     await server.run();
-    console.error('Cloudflare Browser Rendering MCP server running on stdio');
+    console.error('[Setup] Cloudflare Browser Rendering MCP server running on stdio');
   } catch (error) {
-    console.error('Failed to start MCP server:', error);
+    console.error('[Error] Failed to start MCP server:', error);
     process.exit(1);
   }
 }
 
 // Run the server
-main().catch(console.error);
+main().catch(error => console.error('[Error] Unhandled exception:', error));

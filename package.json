@@ -11,8 +11,9 @@
     "dist"
   ],
   "scripts": {
-    "test": "node test-puppeteer.js",
-    "build": "tsc",
+    "test": "node test-mcp-server.js",
+    "test:puppeteer": "node test-puppeteer.js",
+    "build": "tsc && chmod +x dist/index.js && chmod +x test-mcp-server.js",
     "prepare": "npm run build",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
