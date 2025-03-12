@@ -1,5 +1,7 @@
 # Cloudflare Browser Rendering MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@amotivv/cloudflare-browser-rendering-mcp)](https://smithery.ai/server/@amotivv/cloudflare-browser-rendering-mcp)
+
 This MCP (Model Context Protocol) server provides tools for fetching and processing web content using Cloudflare Browser Rendering for use as context in LLMs. It's designed to work with both Claude and Cline client environments.
 
 ## Features
@@ -17,6 +19,14 @@ This MCP (Model Context Protocol) server provides tools for fetching and process
 - A deployed Cloudflare Worker using the provided `puppeteer-worker.js` file
 
 ## Installation
+
+### Installing via Smithery
+
+To install Cloudflare Browser Rendering for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@amotivv/cloudflare-browser-rendering-mcp):
+
+```bash
+npx -y @smithery/cli install @amotivv/cloudflare-browser-rendering-mcp --client claude
+```
 
 1. Clone this repository:
    ```bash
