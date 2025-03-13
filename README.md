@@ -4,6 +4,10 @@
 
 This MCP (Model Context Protocol) server provides tools for fetching and processing web content using Cloudflare Browser Rendering for use as context in LLMs. It's designed to work with both Claude and Cline client environments.
 
+<a href="https://glama.ai/mcp/servers/35u5mo3dm5">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/35u5mo3dm5/badge" alt="cloudflare-browser-rendering-mcp MCP server" />
+</a>
+
 ## Features
 
 - **Web Content Fetching**: Fetch and process web pages for LLM context
